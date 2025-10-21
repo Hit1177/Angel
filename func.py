@@ -3,6 +3,35 @@ import pandas as pd
 import time
 from datetime import datetime, timedelta
 import pytz
+import requests
+import json
+
+def get_nifty50_tokens():
+    nifty50_symbols = [
+        "ADANIPORTS-EQ", "ASIANPAINT-EQ", "AXISBANK-EQ", "BAJAJ-AUTO-EQ", "BAJFINANCE-EQ",
+        "BAJAJFINSV-EQ", "BPCL-EQ", "BHARTIARTL-EQ", "BRITANNIA-EQ", "CIPLA-EQ", "COALINDIA-EQ",
+        "DIVISLAB-EQ", "DRREDDY-EQ", "EICHERMOT-EQ", "GRASIM-EQ", "HCLTECH-EQ", "HDFCBANK-EQ",
+        "HDFCLIFE-EQ", "HEROMOTOCO-EQ", "HINDALCO-EQ", "HINDUNILVR-EQ", "ICICIBANK-EQ",
+        "INDUSINDBK-EQ", "INFY-EQ", "ITC-EQ", "JSWSTEEL-EQ", "KOTAKBANK-EQ", "LT-EQ",
+        "M&M-EQ", "MARUTI-EQ", "NESTLEIND-EQ", "NTPC-EQ", "ONGC-EQ", "POWERGRID-EQ", "RELIANCE-EQ",
+        "SBILIFE-EQ", "SBIN-EQ", "SHREECEM-EQ", "SUNPHARMA-EQ", "TATACONSUM-EQ", "TATAMOTORS-EQ",
+        "TATASTEEL-EQ", "TECHM-EQ", "TITAN-EQ", "TORNTPHARM-EQ", "ULTRACEMCO-EQ", "UPL-EQ",
+        "WIPRO-EQ"
+    ]
+    nifty50_symbol_set = set(nifty50_symbols)
+    url = "https://margincalculator.angelone.in/OpenAPI_File/files/OpenAPIScripMaster.json"
+    data = requests.get(url).json()
+    nifty50_tokens = {}
+    for d in data:
+        if d.get("exch_seg") == "NSE":
+            symbol = d.get("symbol")
+            if symbol in nifty50_symbol_set:
+                nifty50_tokens[int(d["token"])] = symbol
+    return nifty50_tokens
+
+# To use and pretty print:
+tokens = get_nifty50_tokens()
+# print(json.dumps(tokens, indent=4))
 
 tz = pytz.timezone('Asia/Kolkata')
 
