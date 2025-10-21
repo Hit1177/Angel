@@ -142,3 +142,26 @@ def fetch_all_candles_parallel_1(obj, nifty50_tokens, start_date, end_date, max_
             except Exception as exc:
                 print(f"{symbol} generated an exception: {exc}")
     return results
+
+def get_stocks_with_high_rsi_and_efi(symbol_data, symbol_data_1, efi_quantile_df, rsi_threshold):
+    high_rsi_and_efi_stocks = []
+    efi_quantile_dict = efi_quantile_df.set_index('Symbol')['EFI_Quantile_0.99'].to_dict()
+
+    for symbol, df in symbol_data.items():
+        if not df.empty and 'rsi' in df.columns and 'efi' in df.columns:
+            last_rsi = df['rsi'].iloc[-1]
+            last_efi = df['efi'].iloc[-1]
+            last_close = df['Close'].iloc[-1]
+            if symbol in efi_quantile_dict:
+                efi_99_percentile = efi_quantile_dict[symbol]
+                # print(symbol)
+                if (last_rsi > rsi_threshold 
+                and last_efi > efi_99_percentile 
+                and last_close<df['Close'].iloc[i-4:i-1].max()
+                and symbol_data_1[symbol]['Close'].iloc[-1]>df['High'].iloc[-1]):
+                    high_rsi_and_efi_stocks.append(symbol)
+            else:
+                print(f"EFI quantile data not available for {symbol}")
+        else:
+            print(f"RSI or EFI data not available for {symbol}")
+    return high_rsi_and_efi_stocks
