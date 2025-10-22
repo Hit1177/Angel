@@ -166,3 +166,93 @@ def get_stocks_with_high_rsi_and_efi(symbol_data, symbol_data_1, efi_quantile_df
         else:
             print(f"RSI or EFI data not available for {symbol}")
     return high_rsi_and_efi_stocks
+
+
+def get_options_with_ltp(stocks_meeting_criteria, symbol_data_1, obj):
+    """
+    Get nearest call options with LTP for given stocks
+    
+    Parameters:
+    - stocks_meeting_criteria: list of stock symbols
+    - symbol_data_1: dict containing historical data with 'Close' prices
+    - obj: SmartConnect API object
+    
+    Returns:
+    - DataFrame with columns: symbol, token, strike, expiry, ltp
+    """
+    
+    # --- Load and clean scrip master ---
+    url = "https://margincalculator.angelone.in/OpenAPI_File/files/OpenAPIScripMaster.json"
+    df = pd.read_json(url)
+    
+    df["expiry"] = pd.to_datetime(df["expiry"], format="%d%b%Y", errors="coerce")
+    df = df[df["instrumenttype"] == "OPTSTK"].copy()
+    df["strike"] = pd.to_numeric(df["strike"], errors="coerce") / 100
+    
+    
+    # --- Helper: Find nearest call token ---
+def find_nearest_call_token(symbol, spot_price):
+    base_symbol = symbol.replace("-EQ", "").upper()
+    
+    calls = df[(df["name"] == base_symbol) &
+               (df["symbol"].str.endswith("CE"))]
+    
+    if calls.empty:
+        return None, None, None
+    
+    valid_expiries = calls["expiry"].dropna().unique()
+    if len(valid_expiries) == 0:
+        return None, None, None
+    
+    nearest_expiry = sorted(valid_expiries)[0]
+    calls = calls[calls["expiry"] == nearest_expiry]
+    
+    eligible = calls[calls["strike"] >= spot_price]
+    if eligible.empty:
+        return None, None, None
+    
+    nearest = eligible.sort_values("strike").iloc[0]
+    return nearest["token"], nearest["strike"], nearest_expiry
+
+
+# --- Helper: Get LTP with retries ---
+def ltp(row):
+    max_retries = 2
+    
+    for attempt in range(max_retries):
+        try:
+            api_response = obj.ltpData(
+                exchange='NSE',
+                tradingsymbol=row['symbol'],
+                symboltoken=row['token']
+            )
+            return api_response['data']['ltp']
+        
+        except Exception as e:
+            if attempt < max_retries - 1:
+                print(f"Attempt {attempt + 1} failed for {row['symbol']}: {e}. Retrying...")
+                time.sleep(1)
+            else:
+                print(f"All {max_retries} attempts failed for {row['symbol']}: {e}")
+                return None
+
+
+# --- Build output data ---
+output = []
+for symbol in stocks_meeting_criteria:
+    spot_price = symbol_data_1[symbol]["Close"].iloc[-1]
+    token, strike, expiry = find_nearest_call_token(symbol, spot_price)
+    output.append({
+        "symbol": symbol,
+        "token": token,
+        "strike": strike,
+        "expiry": expiry
+    })
+
+# Create DataFrame
+outdf = pd.DataFrame(output)
+
+# Add LTP column
+outdf['ltp'] = outdf.apply(ltp, axis=1)
+
+return outdf
