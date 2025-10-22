@@ -156,9 +156,10 @@ def get_stocks_with_high_rsi_and_efi(symbol_data, symbol_data_1, efi_quantile_df
                 efi_99_percentile = efi_quantile_dict[symbol]
                 # print(symbol)
                 if (last_rsi > rsi_threshold 
-                and last_efi > efi_99_percentile 
-                and last_close<df['Close'].iloc[i-4:i-1].max()
-                and symbol_data_1[symbol]['Close'].iloc[-1]>df['High'].iloc[-1]):
+                # and last_efi > efi_99_percentile 
+                # and last_close<df['Close'].iloc[-4:-1].max()
+                # and symbol_data_1[symbol]['Close'].iloc[-1]>df['High'].iloc[-1]
+                   ):
                     high_rsi_and_efi_stocks.append(symbol)
             else:
                 print(f"EFI quantile data not available for {symbol}")
