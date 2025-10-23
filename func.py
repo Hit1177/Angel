@@ -213,8 +213,8 @@ def get_options_with_ltp(stocks_meeting_criteria, symbol_data_1, obj):
         for attempt in range(max_retries):
             try:
                 api_response = obj.ltpData(
-                    exchange='NSE',
-                    tradingsymbol=row['symbol'],
+                    exchange='NFO',
+                    tradingsymbol=row['symbol'].replace('-EQ', ''),
                     symboltoken=row['token']
                 )
                 return api_response['data']['ltp']
